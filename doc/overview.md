@@ -1,40 +1,44 @@
 
-CanDIG Token Tracer Program
+# CanDIG Token Tracer Program
 
-Python command line program deployable on Keycloak authentication servers
+---
 
-Listens through the ethernet interface of the Keycloak software containers for container deployment
+## Overview
 
-Uses pyshark library frontend for tshark for packet sniffing capabilites
+* Python command line program deployable on Keycloak authentication servers
 
-Continuously searches for HTTP requests to the token endpoint of the Keycloak server and the resulting Keycloak server response
+* Listens through the ethernet interface of the Keycloak software containers for container deployment
 
-Extracts the Access Token, Refresh Token, and Id Token provided from these requests and prints header and payload data to stdout
+* Uses pyshark library frontend for tshark for packet sniffing capabilites
 
-Captures both first-time authentication requests using a one-time access code provided by Keycloak after login and refresh token requests 
+* Continuously searches for HTTP requests to the token endpoint of the Keycloak server and the resulting Keycloak server response
 
-Refresh token requests are used when the access token has expired to retrieve a new set of tokens
+* Extracts the Access Token, Refresh Token, and Id Token provided from these requests and prints header and payload data to stdout
 
-Authorization code requests are used when the user has no valid tokens and must authenticate via a username and password to retrieve a set of tokens
+* Captures both first-time authentication requests using a one-time access code provided by Keycloak after login and refresh token requests 
 
-The program may output a json-formatted file containing the information extracted from each request and response
+* Refresh token requests are used when the access token has expired to retrieve a new set of tokens
 
-The program also tracks:
+* Authorization code requests are used when the user has no valid tokens and must authenticate via a username and password to retrieve a set of tokens
 
--Expiry times of access and refresh tokens
--Source and destination IP and port numbers
--Client secret 
--Client Id
+* The program may output a json-formatted file containing the information extracted from each request and response
 
-Command line arguments are planned to be added
+* The program also tracks:
 
-%%%%%%%%%%%%%%%%
+** Expiry times of access and refresh tokens
+** Source and destination IP and port numbers
+** Client secret 
+** Client Id
 
-Examples:
+* Command line arguments are planned to be added
 
-%%%%%%%%%%%%%%%%
+---
 
-Example 1 - Refresh Token Request:
+## Examples:
+
+---
+
+### Example 1 - Refresh Token Request:
 
 A user attempts to access the GA4GH server with an expired access token and unexpired refresh token. A request is made to the token endpoint of the Keycloak server to retrieve a new set of tokens using the unexpired refresh token.
 
@@ -62,9 +66,9 @@ Id Token:             eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoWldPSW
 
 See also example1.png for the corresponding screen capture of the command line.
 
-%%%%%%%%%%%%%%
+---
 
-Example 2 - Access Code Login 
+### Example 2 - Access Code Login 
 
 A user attempts to access the GA4GH server with no tokens or all expired tokens. A request is made for a set of tokens using a one-time access code provided after authenticating through the redirected Keycloak login page.
 
@@ -95,10 +99,9 @@ Id Token:             eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoWldPSW
 
 See also example2.png for the corresponding screen capture of the command line.
 
-%%%%%%%%%%%%%%
+---
 
-Example 3 - JSON Output File
-
+### Example 3 - JSON Output File
 
 The following JSON file contains the request/repsonse pairs of each of previous examples in their respective order. Each packet is formatted in its own JSON object on its own line. The data contained is identical to the data printed on stdout, but in a more easily parsed format.
 
@@ -111,4 +114,3 @@ tokenPacket.json
 
 See example3.json for the JSON file.
 
-%%%%%%%%%
