@@ -224,8 +224,10 @@ def packetFilterResponse(packet, packetData, fieldName, noFile, noPrint, packetF
     if match:
         packetResponse = packetDict(packet, str(fieldName))
         #print(packetData)
-        packetResponse.loadToken(packetData)
-
+        try:
+            packetResponse.loadToken(packetData)
+        except ValueError:
+            packetHTTPCapture(packet, fieldName, noFile, noPrint, packetFile)
         # print to stdout the packet information
         if (not noPrint):
             packetResponse.printBase()
