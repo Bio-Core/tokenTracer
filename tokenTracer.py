@@ -8,6 +8,7 @@ import re
 import json
 import logging
 import argparse
+import datetime
 
 from urlparse import parse_qs
 
@@ -36,7 +37,7 @@ clientId           = 'clientId'
 httpHeader         = 'HTTP Header'
 refreshToken       = 'refreshToken'
 authorizationCode  = 'authorizationCode'
-rediectUri         = 'rediectUri'
+redirectUri         = 'redirectUri'
 scope              = 'scope'
 accessToken        = 'accessToken'
 accessTokenExpiry  = 'accessTokenExpiry'
@@ -44,7 +45,7 @@ refreshToken       = 'refreshToken'
 refreshTokenExpiry = 'refreshTokenExpiry'
 tokenType          = 'tokenType'
 idToken            = 'idToken'
-
+timestamp          = 'timestamp'
 
 # the class for containing packet information
 # represents the information stored in an individual HTTP packet
@@ -67,240 +68,221 @@ class packetDict:
     # this information is contained inside a data dictionary
     # called data
 
-    def __init__(self, packet, fieldName):
+    def __init__(self, printAll, pprint, ofile, packetFile):
+
+        self.request = True
+        self.refreshRequest = True
+        self.response = True
+        self.http = True
+        self.httpData = True
+        self.httpJson = True
+        self.printAll = printAll
+        self.ofile = ofile
+        self.pprint = pprint
+        self.packetFile = packetFile
+        
+        self.data = dict()
+
+        
+    def loadAll(self, packet):
+        try:
+            fieldName = str(packet['http'].get_field(''))   
+        except KeyError:
+            self.http = False
+            return
+        
+        fieldName = str(packet['http'].get_field(''))
         packetSizeData = str(packet.length)
         sourceIPData   = str(packet['ip'].src)
         sourcePortData = str(packet['tcp'].srcport)
         destIPData     = str(packet['ip'].dst)
         destPortData   = str(packet['tcp'].dstport)
+        packetTime     = str(packet.sniff_time)
 
-        self.data     = { httpHeader : fieldName, packetSize : packetSizeData, sourceIP : sourceIPData,\
-                          sourcePort : sourcePortData, destIP : destIPData, destPort : destPortData }
-
-    # outputs the base information common to all HTTP packets        
-    def printBase(self):
-        print('HTTP Protocol:        ' + self.data[httpHeader])
-        print('Packet Size:          ' + self.data[packetSize])
-        print('Source:               ' + self.data[sourceIP] + ':' + self.data[sourcePort])
-        print('Destination:          ' + self.data[destIP] + ':' + self.data[destPort])
-
-
-    # prints the information found in token endpoint HTTP requests 
-    def printRequest(self):
-        print('Client Secret:        ' + self.data[clientSecret])
-        print('Client Id:            ' + self.data[clientId])
-        print('Grant Type:           ' + self.data[grantType])
-
-    # prints the information found in token endpoint HTTP responses
-    def printToken(self):
-        print('Access Token:         ' + self.data[accessToken])
-        print('Access Token Expiry:  ' + self.data[accessTokenExpiry])
-        print('Refresh Token:        ' + self.data[refreshToken])
-        print('Refresh Token Expiry: ' + self.data[refreshTokenExpiry])
-        print('Token Type:           ' + self.data[tokenType])
-        print('Id Token:             ' + self.data[idToken])
-        
-    def loadQuery(self, queryData):
-        query = parse_qs(queryData)
-
-        clientSecretData = str(query['client_secret'][0])
-        grantTypeData    = str(query['grant_type'][0])
-        clientIdData     = str(query['client_id'][0])
-
-        self.data[clientSecret] = clientSecretData              
-        self.data[grantType] = grantTypeData              
-        self.data[clientId] = clientIdData                  
-        return self.data
-
-    # load grant data from the packet data payload
-    # into the packetDict object
-    # grant data is derived from the data found in 
-    # HTTP request packets to the token endpoint
-    # such requests may be based on either an
-    # authorization code or a refresh token
-    def loadGrant(self, queryData, noPrint):
-        query = parse_qs(queryData)
-        grantTypeData = self.data[grantType]
-        
-        # print information pertient to a refresh token request
-        if grantTypeData == refresh_token:
-            refreshTokenData = query[refresh_token][0]
-            if (not noPrint):
-                print('Refresh Token:        ' + str(refreshTokenData))
-            self.data[refreshToken] = refreshTokenData
-
-        # print the information pertient for an authorization code request
-        elif grantTypeData == 'authorization_code':
-            codeData = query['code'][0]
-            redirectUriData = query['redirect_uri'][0]
-            scopeData = query['scope'][0]
-            if (not noPrint):
-                print('Authorization Code:   ' + str(codeData))
-                print('Redirect Uri:         ' + str(redirectUriData))
-                print('Scope:                ' + str(scopeData))
-
-            self.data[authorizationCode] = codeData
-            self.data[rediectUri] = redirectUriData
-            self.data[scope] = scopeData
-            
-        return self.data
-
-    # stores token data from the packet data payload
-    # into the packetDict object
-    # token data is derived from the data found
-    # in HTTP response packets for the token endpoint
-    def loadToken(self, dataStr):
-        packetData = json.loads(dataStr)
-        accessTokenData = str(packetData[access_token])
-        accessTokenExpiryData = str(packetData[access_token_expiry])
-        refreshTokenData = str(packetData[refresh_token])
-        refreshTokenExpiryData = str(packetData[refresh_token_expiry])
-        tokenTypeData = str(packetData[token_type])
-        idTokenData = str(packetData[id_token])
-
-        self.data[accessToken] = accessTokenData
-        self.data[accessTokenExpiry] = accessTokenExpiryData
-        self.data[refreshToken] = refreshTokenData
-        self.data[refreshTokenExpiry] = refreshTokenExpiryData
-        self.data[tokenType] = tokenTypeData 
-        self.data[idToken] = idTokenData     
-        return self.data
-
-def packetFilterRequest(packet, packetData, fieldName, noFile, noPrint, packetFile):
-    # packet filter and parser for HTTP requests
-
-    # determine if the HTTP packet is a POST request to the token endpoint
-    # a regular expression is used that filters for POSTs to any realm's token endpoint
-    regexpPattern = re.compile('POST /auth/realms/.*/protocol/openid-connect/token HTTP')
-    match = regexpPattern.search(fieldName)
-
-    # if the regular expression matches
-    # construct a packetDict object using the matched packet
-    if match:
-        packetRequest = packetDict(packet, str(fieldName))
-        packetRequest.loadQuery(packetData)
-
-        # print the HTTP request information to stdout
-        if (not noPrint):
-            packetRequest.printBase()
-            packetRequest.printRequest()
-        # print the specific grant type information
-        packetRequest.loadGrant(packetData, noPrint)
-        if (not noPrint):
-            print('')
-
-        # write to the target output file the packet information
-        # as JSON data
-        if (not noFile):
-            jsonString = json.JSONEncoder().encode(packetRequest.data)
-            packetFile.write(jsonString + '\n')
-        return True
-        #continue
-    else:
-        return False
-
-def packetHTTPCapture(packet, fieldName, noFile, noPrint, packetFile):
-    # packet filter that does no filtering on HTTP packets
-    # prints generic information about the packet
-    packetResponse = packetDict(packet, str(fieldName))
-    if (not noPrint): 
-        packetResponse.printBase()
-        print('')
-    if (not noFile):
-        jsonString = json.JSONEncoder().encode(packetResponse.data)
-        packetFile.write(jsonString + '\n')
-    return True
-
-def packetFilterResponse(packet, packetData, fieldName, noFile, noPrint, packetFile):
-    # packet filter and parser for HTTP responses            
-    # construct a regular expression to filter for HTTP packets
-    # whose data contains an access_token field
-    regexpPattern = re.compile('access_token')
-    match = regexpPattern.search(packetData)
-
-    # if the access_token field is found inside a packet's data payload, 
-    # construct a packetDict object using the matched packet
-    # and print the packet information
-    if match:
-        packetResponse = packetDict(packet, str(fieldName))
-        #print(packetData)
         try:
-            packetResponse.loadToken(packetData)
-        except ValueError:
-            packetHTTPCapture(packet, fieldName, noFile, noPrint, packetFile)
-        # print to stdout the packet information
-        if (not noPrint):
-            packetResponse.printBase()
-            packetResponse.printToken()
-            print('')
-
-        # write the packet information to the target output file
-        # as JSON data
-        if (not noFile):
-           jsonString = json.JSONEncoder().encode(packetResponse.data)
-           packetFile.write(jsonString + '\n') 
-        return True
-    else:
-        return False
-
-
-def packetFilter(packet, allPackets, noFile, noPrint, packetFile):
-    try:
-        if packet != None:
-            # extract the HTTP data payload
             packetData = packet['http'].file_data
-            fieldName = packet['http'].get_field('')
+        except AttributeError:
+            self.httpData = False
 
-            requestMatch = packetFilterRequest(packet, packetData, fieldName, noFile, noPrint, packetFile)
-            if (not requestMatch):
-                requestMatch = packetFilterResponse(packet, packetData, fieldName, noFile, noPrint, packetFile)
-                if (not requestMatch) and allPackets:
-                    packetHTTPCapture(packet, fieldName, noFile, noPrint, packetFile)
-    except KeyError:
-        #go to the next packet if the data is not found
-        pass 
-    except AttributeError:
-        pass
+        if self.httpData:
+            httpQuery = parse_qs(packetData) 
 
-def main():
-    # comamnd line argument parser
-    parser = argparse.ArgumentParser(description='Traces HTTP requests and responses for authorization tokens from Keycloak for the CanDIG GA4GH server')
+            try:
+                clientSecretData = str(httpQuery['client_secret'][0])
+            except KeyError:
+                self.request = False
 
-    parser.add_argument('-i', '--interface',    default='eth0',                                                     help='Set the interface on which to sniff packets')
-    parser.add_argument('-a', '--all',          default=False,              dest='allPackets', action='store_true', help='Output all HTTP packets captured')
-    parser.add_argument('-of', '--output-file', default='tokenPacket.json', dest='oFile',                           help='Write to file FILE')
-    parser.add_argument('-if', '--input-file',                              dest='iFile',                           help='Read from .pcap file FILE')
-    parser.add_argument('-np', '--no-print',    default=False,              dest='noPrint',    action='store_true', help='Surpress printing to stdout')
-    parser.add_argument('-nf', '--no-file',     default=False,              dest='noFile',     action='store_true', help='Surpress writing to file')
+            if self.request:
+                grantTypeData    = str(httpQuery['grant_type'][0])
+                clientIdData     = str(httpQuery['client_id'][0])
 
-    # parse for the command line arguments
-    args = parser.parse_args()
+                try:
+                    refreshTokenData = httpQuery[refresh_token][0]
+                except KeyError:
+                    codeData         = httpQuery['code'][0]
+                    redirectUriData  = httpQuery['redirect_uri'][0]
+                    scopeData        = httpQuery['scope'][0]
+                    self.refreshRequest = False
 
-    # open a file handle to write to
-    if (not args.noFile):
-       packetFile = open(args.oFile, 'w')
+            if (not self.request):
+                try:
+                    httpBody = json.loads(packetData)
+                except ValueError:
+                    self.httpJson = False
+                if self.httpJson:
+                    try:
+                        httpBody[access_token]
+                    except KeyError:
+                        self.response = False
+                    except TypeError:
+                        self.response = False
+                    if self.response:       
+                        accessTokenData        = str(httpBody[access_token])
+                        accessTokenExpiryData  = str(httpBody[access_token_expiry])
+                        refreshTokenData       = str(httpBody[refresh_token])
+                        refreshTokenExpiryData = str(httpBody[refresh_token_expiry])
+                        tokenTypeData          = str(httpBody[token_type])
+                        idTokenData            = str(httpBody[id_token])
+        
+        self.data[timestamp]  = packetTime
+        self.data[httpHeader] = fieldName
+        self.data[packetSize] = packetSizeData
+        self.data[sourceIP]   = sourceIPData
+        self.data[sourcePort] = sourcePortData
+        self.data[destIP]     = destIPData
+        self.data[destPort]   = destPortData 
 
-    # if reading from file
-    if args.iFile:
+        if self.httpData:
+            if self.request:
+                self.data[clientSecret] = clientSecretData
+                self.data[grantType]    = grantTypeData
+                self.data[clientId]     = clientIdData
+
+                if self.refreshRequest:
+                    self.data[refreshToken] = str(refreshTokenData)
+                else:
+                    self.data[authorizationCode] = str(codeData)
+                    self.data[redirectUri]        = str(redirectUriData)
+                    self.data[scope]             = str(scopeData)
+
+            if (not self.request) and self.response and self.httpJson:
+                self.data[accessToken]        = accessTokenData
+                self.data[accessTokenExpiry]  = accessTokenExpiryData
+                self.data[refreshToken]       = refreshTokenData
+                self.data[refreshTokenExpiry] = refreshTokenExpiryData
+                self.data[tokenType]          = tokenTypeData
+                self.data[idToken]            = idTokenData
+                                                                                                                  
+    def output(self):
+        if self.http and (self.printAll or (self.httpData and (self.request or (self.response and self.httpJson)))):
+            if self.pprint:
+                print('Timestamp:            ' + self.data[timestamp])
+                print('HTTP Protocol:        ' + self.data[httpHeader])
+                print('Packet Size:          ' + self.data[packetSize])
+                print('Source:               ' + self.data[sourceIP] + ':' + self.data[sourcePort])
+                print('Destination:          ' + self.data[destIP] + ':' + self.data[destPort])
+
+                if self.httpData:
+                    if self.request:
+                        print('Client Secret:        ' + self.data[clientSecret])
+                        print('Client Id:            ' + self.data[clientId])
+                        print('Grant Type:           ' + self.data[grantType])
+
+                        if self.refreshRequest:
+                            print('Refresh Token:        ' + self.data[refreshToken])
+                        else:
+                            print('Authorization Code:   ' + self.data[authorizationCode])
+                            print('Redirect Uri:         ' + self.data[redirectUri])
+                            print('Scope:                ' + self.data[scope])
+
+                    if (not self.request) and self.response and self.httpJson:
+                        print('Access Token:         ' + self.data[accessToken])
+                        print('Access Token Expiry:  ' + self.data[accessTokenExpiry])
+                        print('Refresh Token:        ' + self.data[refreshToken])
+                        print('Refresh Token Expiry: ' + self.data[refreshTokenExpiry])
+                        print('Token Type:           ' + self.data[tokenType])
+                        print('Id Token:             ' + self.data[idToken])
+
+                print('')
+
+            if self.ofile:
+                jsonString = json.JSONEncoder().encode(self.data)
+                self.packetFile.write(jsonString + '\n')
+        
+class packetFilter():
+
+    def __init__(self, packetFile, noFile, noPrint, allPackets):
+        self.packetFile = packetFile
+        self.pprint     = not noPrint
+        self.ofile      = not noFile
+        self.allPackets = allPackets
+
+    def load(self, packet):
+        pDict = packetDict(self.allPackets, self.pprint, self.ofile, self.packetFile) 
+        pDict.loadAll(packet)
+        pDict.output()
+        
+class sniffFrontend:            
+
+    def __init__(self):
+        args = self.argLine()
+        self.sniffer(args)
+    
+    def argLine(self):
+        # command line argument parser
+        parser = argparse.ArgumentParser(description='Traces HTTP requests and responses for authorization tokens from Keycloak for the CanDIG GA4GH server')
+
+        argList = [['-i',  '--interface',   'eth0',             'interface',  'store',      'Set the interface on which to sniff packets'],
+                   ['-a',  '--all',         False,              'allPackets', 'store_true', 'Output all HTTP packets captured'           ],
+                   ['-of', '--output-file', 'tokenPacket.json', 'oFile',      'store',      'Write to file FILE'                         ],
+                   ['-if', '--input-file',  None,               'iFile',      'store',      'Read from .pcap file FILE'                  ],
+                   ['-np', '--no-print',    False,              'noPrint',    'store_true', 'Surpress printing to stdout'                ],
+                   ['-nf', '--no-file',     False,              'noFile',     'store_true', 'Surpress writing to file'                   ]]
+
+        for subList in argList:
+            parser.add_argument(subList[0], subList[1], default=subList[2], dest=subList[3], action=subList[4], help=subList[5])
+
+        # parse for the command line arguments
+        args = parser.parse_args()
+
+        return args
+
+    def fileCap(self, pFilter, args):
        capture = pyshark.FileCapture(args.iFile, display_filter="http")
-       for packet in capture:
-           packetFilter(packet, args.allPackets, args.noPrint, args.noFile, packetFile)
-    # otherwise if capturing live
-    else:
-        # capture live from eth0 inside the ga4gh container
-        capture = pyshark.LiveCapture(interface=args.interface, display_filter="http")
         # iterate through all the packets in the capture file
+       for packet in capture:
+           pFilter.load(packet)
+
+    def liveCap(self, pFilter, args):
+        capture = pyshark.LiveCapture(interface=args.interface, display_filter="http")
         try:
             for packet in capture.sniff_continuously():
-                packetFilter(packet, args.allPackets, args.noPrint, args.noFile, packetFile)
+                pFilter.load(packet)
         except RuntimeError:
+            # exit gracefully upon a CTRL+C signal being given
             pass
 
-    # exit upon a CTRL+C signal being given
-    if (not args.noFile):
-        packetFile.close()
-    exit
+    def sniffer(self, args):    
+        # open a file handle to write to
+        if (not args.noFile):
+           packetFile = open(args.oFile, 'w')
+        else:
+           packetFile = None
+
+        pFilter = packetFilter(packetFile, args.noFile, args.noPrint, args.allPackets)
+
+        # either read from a packet capture file
+        # or capture packets live from a network interface
+        # the network interface is given by args.interface
+        if args.iFile:
+            self.fileCap(pFilter, args)
+        else:
+            self.liveCap(pFilter, args)
+
+        if (not args.noFile):
+            packetFile.close()
+        exit
  
-main()
+sniffFrontend()
 
 
