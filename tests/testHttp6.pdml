@@ -1,0 +1,23 @@
+<packet>
+  <proto name="geninfo">
+    <field name="num" pos="0" show="100" showname="Number" value="200" size="300"/>
+    <field name="timestamp" pos="0" show="Jun 23, 1912 00:00:00.000000000 UTC" showname="Captured Time" value="1" size="1"/>
+  </proto>
+  <proto name="frame" showname="Frame" size="1000" pos="0">
+    <field name="frame.interface_id" showname="Interface id: 0 (eth0)" size="0" pos="0" show="0"/>
+  </proto>
+  <proto name="eth" showname="Ethernet II" size="1" pos="0">
+     <field name="eth.dst" showname="Destination" size="1" pos="0"/>
+  </proto>
+  <proto name="ip" showname="Internet Protocol Version 4, Src: 172.0.0.1, Dst: 172.0.0.1" size="10" pos="1">
+    <field name="ip.src" showname="Source: 127.0.0.1" size="1" pos="0" show="172.0.0.1" value="1"/>
+    <field name="ip.dst" showname="Destination: 127.0.0.1" size="1" pos="0" show="172.0.0.1" value="1"/>
+  </proto>
+  <proto name="tcp" showname="Transmission Control Protocol" size="1" pos="1">
+    <field name="tcp.srcport" showname="Source Port: 80" size="1" pos="0" show="80" value="1"/>
+    <field name="tcp.dstport" showname="Destination Port: 80" size="1" pos="0" show="80" value="1"/>
+  </proto>
+  <proto name="http" showname="Hypertext Transfer Protocol" size="1" pos="0">
+    <field name="" show="HTTP/1.1 OK\r\n" size="1" pos="0" value="0"/>
+  </proto>
+</packet>

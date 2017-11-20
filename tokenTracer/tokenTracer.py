@@ -1,25 +1,30 @@
 #!/usr/bin/python
-
-# this python program iterates through all the packets in a pcap capture file
-# if a packet containing an access token is found, the information on that packet is printed
-
+'''
+This python program iterates through all the packets in a pcap capture file
+If a packet containing an access token is found, the information on that packet is printed
+'''
 import pyshark
 import re
 import json
 import logging
 import argparse
 import datetime
+import sys
+import inspect
 
 from urlparse import parse_qs
 
 # set logging level to CRITICAL to surpress logger
 # set logging level to DEBUG to view debug statements
 # in production, the logger MUST be set to CRITICAL
-logging.basicConfig(level=logging.CRITICAL)
+logLevel = logging.CRITICAL
+#logLevel = logging.DEBUG
+
+logging.basicConfig(level=logLevel)
 
 logger = logging.getLogger()
 
-# json data fields:
+# global json data fields:
 
 access_token         = 'access_token'
 access_token_expiry  = 'expires_in'
@@ -29,76 +34,106 @@ token_type           = 'token_type'
 id_token             = 'id_token'
 not_before_policy    = 'not-before-policy'
 session_state        = 'session_state'
+packetSize           = 'packetSize'
+sourceIP             = 'sourceIP'
+destIP               = 'destIP'
+destPort             = 'destPort'
+sourcePort           = 'sourcePort'
+clientSecret         = 'clientSecret'
+grantType            = 'grantType'
+clientId             = 'clientId'
+httpHeader           = 'HTTP Header'
+refreshToken         = 'refreshToken'
+authorizationCode    = 'authorizationCode'
+redirectUri          = 'redirectUri'
+scope                = 'scope'
+accessToken          = 'accessToken'
+accessTokenExpiry    = 'accessTokenExpiry'
+refreshToken         = 'refreshToken'
+refreshTokenExpiry   = 'refreshTokenExpiry'
+tokenType            = 'tokenType'
+idToken              = 'idToken'
+timestamp            = 'timestamp'
 
-packetSize         = 'packetSize'
-sourceIP           = 'sourceIP'
-destIP             = 'destIP'
-destPort           = 'destPort'
-sourcePort         = 'sourcePort'
-clientSecret       = 'clientSecret'
-grantType          = 'grantType'
-clientId           = 'clientId'
-httpHeader         = 'HTTP Header'
-refreshToken       = 'refreshToken'
-authorizationCode  = 'authorizationCode'
-redirectUri         = 'redirectUri'
-scope              = 'scope'
-accessToken        = 'accessToken'
-accessTokenExpiry  = 'accessTokenExpiry'
-refreshToken       = 'refreshToken'
-refreshTokenExpiry = 'refreshTokenExpiry'
-tokenType          = 'tokenType'
-idToken            = 'idToken'
-timestamp          = 'timestamp'
-
-# the class for containing packet information
-# represents the information stored in an individual HTTP packet
-# an instance of this class exists for every HTTP packet found
 class packetDict:
+    '''
+    The class for containing packet information
+    represents the information stored in an individual HTTP packet
+    an instance of this class exists for every HTTP packet found
 
-    # constructor for the packetDict class
-    # takes a packet object and a fieldName 
-    # the field name is the first line of the header
-    # which details the HTTP method and URL
+    All packetDicts store:
+    - the packet top level header
+    - the packet size
+    - the source IP address
+    - the source port number
+    - the destination IP address
+    - the destination port number
 
-    # all packetDicts store:
-    # - the packet top level header
-    # - the packet size
-    # - the source IP address
-    # - the source port number
-    # - the destination IP address
-    # - the destination port number
+    This information is contained inside 
+    a data dictionary called data
+    '''
 
-    # this information is contained inside a data dictionary
-    # called data
-
-    def __init__(self, printAll, pprint, ofile, packetFile):
+    def __init__(self, printAll, jsonFormat):
         '''
         Initializes the attributes of the packetDict object
 
         Starts the packet dict with an empty dictionary
-        '''
 
+        The constructor for the packetDict class
+        takes a packet object and a fieldName 
+        The field name is the first line of the header
+        which details the HTTP method and URL
+
+        Parameters:
+
+        boolean printAll - If True, print all intercepted HTTP packets
+        boolean jsonFormat - If True, print to stdout in newline-separated JSON objects 
+                             If False, print to stdout in pretty-printed format
+                             Pretty-printed format uses newline-separated key-value pairs
+                             whose keys are separated from their values by a colon and whitespace.
+
+        Returns: packetDict
+        '''
         self.printAll = printAll
-        self.ofile = ofile
-        self.pprint = pprint
-        self.packetFile = packetFile
+        self.json = jsonFormat
 
         self.data = dict()
 
-        
-    def loadAll(self, packet):
-        '''
-        Loads data from the packet into the dictionary
-        '''
-
-        # set/reset the packet signature
+        # set the initial packet signature
         self.request = True
         self.refreshRequest = True
         self.response = True
         self.http = True
         self.httpData = True
         self.httpJson = True
+
+        
+    def loadAll(self, packet):
+        '''
+        Loads data from the packet into the dictionary
+
+        Parameters:
+
+        packet
+
+        Returns: None
+        '''
+        # reset the initial packet signature
+        self.request = True
+        self.refreshRequest = True
+        self.response = True
+        self.http = True
+        self.httpData = True
+        self.httpJson = True
+
+        # we assume all packets are HTTP packets
+        # as pyshark has been set to filter for HTTP
+        # packets in the capturer
+
+        # test if the HTTP packet contains a header
+
+        if not packet:
+            return 
 
         logging.debug('Processing HTTP packet...')
         try:
@@ -109,14 +144,37 @@ class packetDict:
             return
         
         logging.debug('Loading base data')
-        fieldName = str(packet['http'].get_field(''))
-        packetSizeData = str(packet.length)
-        sourceIPData   = str(packet['ip'].src)
-        sourcePortData = str(packet['tcp'].srcport)
-        destIPData     = str(packet['ip'].dst)
-        destPortData   = str(packet['tcp'].dstport)
-        packetTime     = str(packet.sniff_time)
 
+        # load common packet information
+        # all packets intecepted should contain 
+        # these layers and associated fields
+
+        # abort should the http packet be malformed
+        # the packet is malformed if it is missing
+        # these fields
+
+        try:
+            fieldName = str(packet['http'].get_field(''))
+            packetSizeData = str(packet.length)
+            sourceIPData   = str(packet['ip'].src)
+            sourcePortData = str(packet['tcp'].srcport)
+            destIPData     = str(packet['ip'].dst)
+            destPortData   = str(packet['tcp'].dstport)
+        except AttributeError:
+            logging.debug("AttributeError: Malformed HTTP packet: Missing Field!")
+            return
+        except KeyError:
+            logging.debug("KeyError: Malformed HTTP Packet: Missing Layer!")
+            return
+
+        try:
+            packetTime = str(packet.sniff_time)
+        except TypeError:
+            logging.debug("TypeError: Malformed Timestamp!")
+            return
+
+        # test if the HTTP packet contains a payload body
+ 
         try:
             packetData = packet['http'].file_data
         except AttributeError:
@@ -125,6 +183,8 @@ class packetDict:
 
         if self.httpData:
             httpQuery = parse_qs(packetData) 
+
+            # test if the data payload contains a client secret
 
             try:
                 clientSecretData = str(httpQuery['client_secret'][0])
@@ -144,6 +204,14 @@ class packetDict:
                     redirectUriData  = httpQuery['redirect_uri'][0]
                     scopeData        = httpQuery['scope'][0]
                     self.refreshRequest = False
+
+           # If the packet is not a request for tokens
+           # test if the packet is a response 
+           # to such a request:
+
+           # Test if the packet data is in JSON format
+           # and if so, test if the packet data contains
+           # an access token
 
             if (not self.request):
                 try:
@@ -168,12 +236,20 @@ class packetDict:
                         tokenTypeData          = str(httpBody[token_type])
                         idTokenData            = str(httpBody[id_token])
         
+        # Debugging of the packet signature
+        # Used to test if the filters are working
+
         logging.debug('Parsing complete: Assembling dictionary...')
         logging.debug('Data signature:')
         logging.debug('HTTP Data : ' + str(self.httpData))
         logging.debug('Request : ' + str(self.request))
         logging.debug('Refresh Request : ' + str(self.refreshRequest))
         logging.debug('Response : ' + str(self.response and self.httpJson))
+
+        # Store the locally collected packet data 
+        # inside the data dictionary of the object
+
+        # First store the data common to all HTTP packets
 
         self.data[timestamp]  = packetTime
         self.data[httpHeader] = fieldName
@@ -182,6 +258,9 @@ class packetDict:
         self.data[sourcePort] = sourcePortData
         self.data[destIP]     = destIPData
         self.data[destPort]   = destPortData 
+
+        # Then store the data for token requests and responses
+        # if the signature matches        
 
         if self.httpData:
             if self.request:
@@ -213,6 +292,10 @@ class packetDict:
         Clearing the di ctioanry enables a new packet to be loaded
         Otherwise, the new and old packet information can mix and result 
         in a malformed data structure
+
+        Parameters: None
+
+        Returns: None
         '''
         logging.debug('Clearing dictionary...')
         self.data.clear()
@@ -222,9 +305,22 @@ class packetDict:
         Pretty-prints the packet data to stdout
 
         Tightly coupled to the packetDict object
+
+        Parameters: None
+
+        Returns: None
         '''
+        
+        # Use the signature to determine what information 
+        # can be printed and in what format 
+
         logging.debug('Pretty-printing...')
-        print('Timestamp:            ' + self.data[timestamp])
+
+        try:
+            print('Timestamp:            ' + self.data[timestamp])
+        except KeyError:
+            return
+
         print('HTTP Protocol:        ' + self.data[httpHeader])
         print('Packet Size:          ' + self.data[packetSize])
         print('Source:               ' + self.data[sourceIP] + ':' + self.data[sourcePort])
@@ -258,54 +354,111 @@ class packetDict:
         '''
         Main logging function
 
-        Decides whether to print to stdout or to a file
+        Decides which format to print to stdout
+
+        Parameters: None
+
+        Returns: None
         '''
         logging.debug('Preparing to output...')
         if self.http and (self.printAll or (self.httpData and (self.request or (self.response and self.httpJson)))):
-            if self.pprint:
+            if self.json:
+                logging.debug('Outputting JSON')
+                jsonString = json.JSONEncoder().encode(self.data)
+                print(jsonString)
+            else:
                 self.prettyPrint()
 
-            if self.ofile:
-                logging.debug('Writing to file...')
-                jsonString = json.JSONEncoder().encode(self.data)
-                self.packetFile.write(jsonString + '\n')
-        
         
 class sniffFrontend:            
+    '''
+    The frontend class establishes the command line parser and contains the packet capturer
 
-    def __init__(self):
+    The frontend prepares a packetDict object that is loaded with packets
+
+    +----------------------------------------------+
+    |frontend                                      |
+    |                                              |
+    | +------------------+                         |
+    | |commandLineParser |                         |
+    | +------------------+                         |
+    |         |                                    |
+    | +------------------+                         |
+    | |sniffer           |                         | 
+    | +------------------+                         |
+    |         |                                    |
+    |         +-----------------------+            |
+    |         |                       |            |
+    |         \/                      \/           |
+    | +-----------------+      +--------------+    |     +------------+
+    | |interfaceCapturer|      | fileCapturer |    | <-> | packetDict |
+    | +-----------------+      +--------------+    |     +------------+
+    +----------------------------------------------+ 
+             /\
+    eth0     |                     +----+
+    +--      |                     |JSON| 
+    |--------+                     |    |
+    +--                            +----+
+    '''
+
+    def start(self):
         '''
-        Constructor for the sniffFrontend object
-  
         Initializes the command-line arguments parser 
+
         Loads the sniffing process with the command line arguments
+
+        Parameters: None
+        
+        Returns: None
         '''
-        args = self.argLine()
+        args = self.argParse(sys.argv[1:])
         self.sniffer(args)
 
     
-    def argLine(self):
-        # command line argument parser
-        parser = argparse.ArgumentParser(description='Traces HTTP requests and responses for authorization tokens from Keycloak for the CanDIG GA4GH server')
+    def argParse(self, cmdArgs):
+        '''
+        Parsers the command line for optional arguments
+        
+        Returns an object that holds the command line arguments as attributes
 
-        argList = [['-i',  '--interface',   'eth0',             'interface',  'store',      'Set the interface on which to sniff packets'],
-                   ['-a',  '--all',         False,              'allPackets', 'store_true', 'Output all HTTP packets captured'           ],
-                   ['-of', '--output-file', 'tokenPacket.json', 'oFile',      'store',      'Write to file FILE'                         ],
-                   ['-if', '--input-file',  None,               'iFile',      'store',      'Read from .pcap file FILE'                  ],
-                   ['-np', '--no-print',    False,              'noPrint',    'store_true', 'Surpress printing to stdout'                ],
-                   ['-nf', '--no-file',     False,              'noFile',     'store_true', 'Surpress writing to file'                   ]]
+        Parameters:
+
+        cmdArgs
+
+        Returns:
+
+        argObject args - The object containing the command line arguments as attributes mapped with their values
+        '''
+        # command line argument parser
+        descLine = 'Outputs a live trace of intercepted HTTP requests and responses for Keycloak authorization tokens.'
+        parser = argparse.ArgumentParser(description=descLine)
+
+        argList = [['-i',  '--interface',   'eth0',             
+                    'interface',  'store',      'Set the interface on which to sniff packets.'],
+                   ['-a',  '--all',         False,              
+                    'allPackets', 'store_true', 'Output all HTTP packets captured.'           ],
+                   ['-f', '--file',  None,               
+                    'iFile',      'store',      'Read from .pcap input file IFILE.'                  ],
+                   ['-j',  '--json',        False,               
+                    'jsonFormat', 'store_true', 'Output in JSON format.'                      ]]
 
         for subList in argList:
             parser.add_argument(subList[0], subList[1], default=subList[2], dest=subList[3], action=subList[4], help=subList[5])
 
         # parse for the command line arguments
-        args = parser.parse_args()
+        args = parser.parse_args(cmdArgs)
         return args
 
 
     def load(self, packet):
         '''
         Loads a packet into the packetDictionary object for processing and logging output
+
+        Parameters: 
+
+        Packet packet - the pyshark Packet object (pyshark.packet.packet.Packet)
+
+        Returns: None
         '''
         self.pDict.loadAll(packet)
         self.pDict.output()
@@ -313,19 +466,34 @@ class sniffFrontend:
 
 
     def fileCap(self, args):
-       '''
-       Captures from an input packet capture (pcap) file
-       '''
-       capture = pyshark.FileCapture(args.iFile, display_filter="http")
+        '''
+        Captures from an input packet capture (pcap) file
+
+        Parameters:
+
+        argObject args - The object containing the command line arguments as attributes mapped with their values 
+
+        Returns: None       
+        '''
+        capture = pyshark.FileCapture(args.iFile, display_filter="http")
         # iterate through all the packets in the capture file
-       for packet in capture:
-           logging.debug(packet)
-           self.load(packet)
+        for packet in capture:
+            #logging.debug(type(packet.ip))
+            #members = inspect.getmembers(packet.ip)
+            #logging.debug(members)
+            logging.debug(packet)
+            self.load(packet)
 
 
     def liveCap(self, args):
         '''
         Captures from a live network interface
+
+        Parameters:
+
+        argObject args - The object containing the command line arguments as attributes mapped with their values 
+
+        Returns: None
         '''
         capture = pyshark.LiveCapture(interface=args.interface, display_filter="http")
         try:
@@ -334,7 +502,7 @@ class sniffFrontend:
                 self.load(packet)
         except RuntimeError:
             # exit gracefully upon a CTRL+C signal being given
-            pass
+            return
 
 
     def sniffer(self, args):    
@@ -343,19 +511,14 @@ class sniffFrontend:
 
         Decides based on args whether the sniff live or from a file
         Creates the base pDict object based on args
+
+        Parameters: 
+
+        argObject args - The object containing the command line arguments as attributes mapped with their values
+
+        Returns: None
         '''
-        # open a file handle to write to
-        if (not args.noFile):
-           self.packetFile = open(args.oFile, 'w')
-        else:
-           self.packetFile = None
-
-        #self.packetFile = args.packetFile
-        self.pprint     = not args.noPrint
-        self.ofile      = not args.noFile
-        self.allPackets = args.allPackets
-
-        self.pDict = packetDict(self.allPackets, self.pprint, self.ofile, self.packetFile) 
+        self.pDict = packetDict(args.allPackets, args.jsonFormat) 
 
         # either read from a packet capture file
         # or capture packets live from a network interface
@@ -364,14 +527,16 @@ class sniffFrontend:
             self.fileCap(args)
         else:
             self.liveCap(args)
-
-        if (not args.noFile):
-            self.packetFile.close()
         exit
 
 
+def main():
+    # create the frontend
+    sniffer = sniffFrontend()
+    # start the packet sniffing process
+    sniffer.start()
 
+# if the module is run directly 
+# as a script (not imported)
 if __name__ == "__main__":
-    sniffFrontend()
-
-
+    main()

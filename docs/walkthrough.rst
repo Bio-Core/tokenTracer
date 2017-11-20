@@ -16,13 +16,7 @@ The token tracer is useful as both a network debugging and logging tool for appl
 
 The token tracer cannot decrypt HTTPS traffic using TLS/SSL. The Keycloak and secured application servers must be configured to use only the unecrypyed HTTP procotol.
 
-Supports Keycloak 3.3.0.CR3
-
-
-
-
-
-
+- Supports Keycloak 3.3.0.CR3
 
 1.0.1 File Directory Layout
 ================================
@@ -49,66 +43,41 @@ Here is an example that holds both Keycloak and the Token Tracer within the same
 1.1  Installation
 ---------------------
 
-There are two options to install the token tracer:
+Installation is covered in the README.rst.
 
-1. Pip Installation
-2. Git Installation
-
-Pip is preferred for production deployments. Git installation is useful for development.
-
-1.1.1 Pip Installation
-=========================
-
-SCREENSHOTS
-
-Ensure that you have python and pip installed. 
-
-``sudo pip install tokenTracer``
-
-
-1.1.2 Git Installation
-=========================
-
-1. Install python, git, pip, pyshark, tshark
-
-On debian:
-
-``$ apt-get install -y git python python-pip tshark``
-
-``$ pip install tshark``
-
-2. Clone the git repository
-
-``git clone https://github.com/Bio-Core/tokenTracer``
-
-3. Run the program:
-
-The program can be invoked using python:
-
-``$ python ./tokenTracer.py``
-
-The program may also be invoked directly:
-
-``$ ./tokenTracer.py``
-
-Command line arguments are appended to the invocation:
-
-``$ ./tokenTracer.py -a``
-
-
-
-1.2 Starting the token tracer
+1.2 Using the Token Tracer
 ----------------------------------
+
+1.2.1 Default Behaviour
+==============================
 
 Start the token tracer with:
 
 ``$ tokenTracer``
 
-The token tracer will begin to sniff packets on the default interface eth0
+The token tracer will begin to sniff packets on the default interface eth0.
+In this case, the token tracer uses its default settings. The settings can
+be changed through the command-line arguments.
+
+1.2.2 Command Line Arguments
+================================
+
+Command-line arguments are appended to the invocation:
+
+``$ tokenTracer -a -i eth0 -j``
+
+The command line arguments are listed below:
+
+--interface      The network interface on which to sniff
+--all            Print all HTTP packets intercepted
+--file           The input packet capture file to read from
+--json           Print to stdout in JSON format
+
+The --interface and --file commands are mutually exclusive, as the program may only either obtain packets either from an input file or from a live interface, but not both. 
 
 
-1.2.1 Choosing a Network Interface
-===================================
+1.2.3 Choosing a Network Interface
+========================================
 
 For live packet capture, the token tracer program must know which network interface to sniff packets on. This interface should be the same one on which the Keycloak server listens. 
 The token tracer by default will listen on eth0, the first ethernet interface.
@@ -145,62 +114,96 @@ The token tracer may be assigned to a network interface using the --interface op
 
 For example, we may assign the token tracer to listen on the local loopback interface on localhost if keycloak is communicating locally:
 
-``$ tokenTracer -i lo``
+``$ tokenTracer -i lo0``
+
+Making HTTP requests to 127.0.0.1 will be intercepted by the tokenTracer.
 
 We may also assign the vboxnet0 interface if the Keycloak server is being hosted on a guest operating system using VirtualBox:
 
 ``$ tokenTracer -i vboxnet0``
 
 
-1.2.2 Command Line Arguments
-================================
+1.2.4 Buffering 
+==================================
 
-Command-line arguments are appended to the invocation:
-
-``$ tokenTracer -a -i eth0 --no-print``
-
-The command line arguments are listed below:
-
---interface      The network interface on which to sniff
---all            Print all HTTP packets intercepted
---no-print       Do not print to stdout
---output-file    The output file to write to 
---input-file     The input packet capture file to read from
+Output in the tokenTracer is buffered. This means that a sufficient number of packets 
+must be recieved before the token tracer may recieve and process the intercepted packets.
+This is an implementation detail of tshark and pyshark, rather than the tokenTracer.
+In principle, the tokenTracer can worked with unbuffered data. The token tracer works
+with unbuffered data when it handles input packet capture files.
 
 
-The --interface and --input-file commands are mutually exclusive, as the program may only either obtain packets either from an input file or from a live interface, but not both. 
-
-
-
-
-1.4 Usage
---------------------------------
-
-
-
-1.5 Printing from a packet capture (pcap) File
+1.2.5 Printing from a packet capture (pcap) File
 ---------------------------------------------------
 
-The token tracer may either capture on a live interface or from a packet capture file
+The token tracer may either capture on a live interface or from a packet capture file.
 
 Packet capture (pcap) files can be obtained from packet sniffer programs such as Wireshark or tcpdump when sniffing on live interfaces.
 
-Use the --input-file command to read from a packet capture file in place of sniffing on a live interface:
+Use the --file command to read from a packet capture file in place of sniffing on a live interface:
 
-``$ tokenTracer -if test/testfile.cap``
+``$ tokenTracer -f test/testInput.pcap``
 
 The tokenTracer displays the following output:
 
+1.2.6 Outputting All HTTP Packets
+----------------------------------------------------
+
+The token tracer may be instructed to output all HTTP packets that it intercepts. Normally, the packets are filtered for those that resemble token request-response patterns in structure. 
+
+Use the --all option to permit all HTTP packets:
+
+``tokenTracer -a``
+
+This may be used with different input options, including input files:
+
+``tokenTracer -a -f test/testInput.pcap``
+
+Now, all HTTP packets recorded in the packet capture file are displayed.
+
+1.2.7 File Output
+-----------------------------------------------
+
+The token tracer may output to a file by redirecting its output:
+
+``tokenTracer > output.txt``
+
+The tokenTracer will instead write in pretty-print format to the output file named output.txt.
+You can change the file name and path as desired. 
+
+You can use the --json argument to output in JSON format. This will allow you to write JSON files:
+
+``tokenTracer -j > output.json``
+
+1.2.8 Use with other Programs
+-------------------------------
+
+The token tracer's output may be piped to other programs for processing.
+
+The token tracer module may be imported for use inside other Python programs.
+
+We can use the token tracer as an input source to another program to process the resultant data, through one of several ways:
+
+1. Import the program as a python module
+2. Invoke the program as a separate process 
+
+We can invoke the program separately in a shell script using the & command at end of the invocation in order to send the process to the background.
+
+We can then pipe the output to another program:
+
+``tokenTracer | program.py``
+
+The output can also be simply redirected as an alterative:
+
+``tokenTracer > program.py``
 
 
-
-
-1.6 Using the Token Tracer in a generic setup
+1.3 Using the Token Tracer in a generic setup
 ------------------------------------------------
 
 The first two steps cover the manual installation and setup of the Keycloak server and the application server on which you wish to secure authentication. The installation procedure for these can be referenced in their original documentation.
 
-1.6.1 Keycloak Installation
+1.3.1 Keycloak Installation
 ===============================
 
 Install the Keycloak server as listed in its documentation:
@@ -229,7 +232,7 @@ Execute the ``standaloneStart.sh`` shell script.
 #. Keycloak will listen to port 8080 by default.
 
 
-1.6.2 Application Server Installation
+1.3.2 Application Server Installation
 =========================================
 
 Install the application server that you wish to use. Ensure that it does not listen on the same port as Keycloak. 
@@ -245,7 +248,7 @@ Start the application server.
 
 
 
-1.7 Usage with the CanDIG project
+1.4 Usage with the CanDIG project
 -----------------------------------
 
 An example use case for the token tracer is with the CanDIG project. The token tracer has been integrated into the deployment scheme so that the program can be set up automatically alongside Keycloak and the GA4GH server (our application server in this case). 
@@ -332,29 +335,3 @@ Run the token tracer program using the ALL option:
 
 Now you will receive all the HTTP packets transmitted to and from the Keycloak server as output.
 
-
-1.8 Using the token tracer in programs
-------------------------------------------
-
-We can use the token tracer as an input source to another program to process the resultant data, through one of several ways:
-
-1. Import the program as a python module
-2. Invoke the program as a separate process 
-
-We can invoke the program separately in a shell script using the & command at end of the invocation in order to send the process to the background.
-
-We can then pipe the output to another program:
-
-``tokenTracer | program.py``
-
-The output can also be simply redirected as an alterative:
-
-``tokenTracer > program.py``
-
-This can also be used as an alternative to create a file:
-
-``tokenTracer > capture.txt``
-
-Or using the json format:
-
-``tokenTracer -j > capture.json``
