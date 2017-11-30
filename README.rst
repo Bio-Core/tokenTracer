@@ -11,10 +11,8 @@ used to server application servers.
 
 The program contains two types of packet filter-parser pairs:
 
-1. One filters and parsers packets 
-that send token requests to the endpoint1
-2. One filters and parsers packets 
-that are responses to requests to the token endpoint
+1. One filters and parsers packets that send token requests to the endpoint
+2. One filters and parsers packets that are responses to requests to the token endpoint
 
 There are two principal cases in which tokens are transmitted 
 using packets for the OpenID Connect Authentication procedure:
@@ -27,6 +25,7 @@ into the server through a login screen.
 
 The refresh token request occurs when the user refreshes the webpage 
 after having logged in provided that:
+
 1. The Access Token is expired
 2. The Refresh Token is not expired
 
@@ -51,11 +50,13 @@ To install the program, one also needs:
 
 The token tracer program is invoked as an ordinary python program:
 
-``python tokenTracer.py``
+::
+
+    python tokenTracer.py
 
 Invoking the token tracer with no command line arguments will cause 
-the program to sniff live on the ethernet interface for all HTTP packets
- and print them to stdout. 
+the program to sniff live on the ethernet interface for all HTTP packets 
+and print them to stdout. 
 The program will only output packets that satisfy its filters. 
 There are two types of packets that it will print:
 
@@ -95,25 +96,35 @@ development and testing.
 1. Install Python and pip. Your system will likely already have 
 these installed. On Debian/Ubuntu enter:
 
-``apt-get install python python-pip``
+::
+
+    apt-get install python python-pip -y
 
 2. Install tshark. On Debian/Ubuntu enter:
 
-``apt-get install tshark``
+::
+
+    apt-get install tshark -y
 
 3. Install pyshark via pip:
 
-``pip install pyshark``
+::
+
+    pip install pyshark
 
 4. Install the program through pip remotely:
 
-``pip install tokenTracer``
+::
+
+    pip install tokenTracer
 
 The token tracer program will then be installed.
 
 To check that the installation worked, type:
 
-``tokenTracer -h``
+::
+
+    tokenTracer -h
 
 A help menu should display:
 
@@ -140,15 +151,21 @@ A help menu should display:
 1. Install Python, pip, and git. Your system will likely already have 
 these installed. On Debian/Ubuntu enter:
 
-``apt-get install python python-pip git``
+::
+
+    apt-get install python python-pip git -y
 
 2. Install tshark. On Debian/Ubuntu enter:
 
-``apt-get install tshark``
+::
+
+    apt-get install tshark -y 
 
 3. Install pyshark via pip:
 
-``pip install pyshark``
+::
+
+    pip install pyshark
 
 4. Change directory (``cd``) into the folder which will containing 
 the folder for the git repository.
@@ -158,21 +175,30 @@ You may wish to create new folders with ``mkdir``.
 created in the current directory that will contain the tokenTracer 
 program files.
 
-``git clone https://github.com/Bio-Core/tokenTracer.git``
+::
+
+    git clone https://github.com/Bio-Core/tokenTracer.git
 
 6. Change directory into the git repository:
 
-``cd tokenTracer``
+
+::
+
+    cd tokenTracer
 
 7. Install via pip inside the directory:
 
-``pip install .``
+::
+
+    pip install .
 
 The token tracer should be installed onto the computer. 
 
 You can verify the installation with:
 
-``tokenTracer -h``
+::
+
+    tokenTracer -h
 
 A help menu should display:
 
@@ -199,15 +225,21 @@ A help menu should display:
 1. Install Python, pip, and git. Your system will likely already have 
 these installed. On Debian/Ubuntu enter:
 
-``apt-get install python python-pip git``
+::
+
+    apt-get install python python-pip git -y
 
 2. Install tshark. On Debian/Ubuntu enter:
 
-``apt-get install tshark``
+::
+
+    apt-get install tshark -y
 
 3. Install pyshark via pip:
 
-``pip install pyshark``
+::
+
+    pip install pyshark
 
 4. Change directory (``cd``) into the folder which will containing 
 the folder for the git repository.
@@ -217,15 +249,21 @@ You may wish to create new folders with ``mkdir``.
 created in the current directory that will contain the tokenTracer 
 program files.
 
-``git clone https://github.com/Bio-Core/tokenTracer.git``
+::
+
+    git clone https://github.com/Bio-Core/tokenTracer.git
 
 6. Change directory into the git repository into the tokenTracer folder:
 
-``cd tokenTracer/tokenTracer``
+::
+
+    cd tokenTracer/tokenTracer
 
 7. Run the tokenTracer module:
 
-``python tokenTracer.py``
+::
+
+    python tokenTracer.py
 
 The token tracer program should now be running.
 
@@ -234,14 +272,18 @@ The token tracer program should now be running.
 
 If the token tracer was installed through pip, the program may be uninstalled via pip:
 
-``pip uninstall tokenTracer``
+::
+
+    pip uninstall tokenTracer
 
 1.5 Running the Program
 ---------------------------
 
 To run the program, enter its name into the command-line:
 
-``tokenTracer``
+::
+
+    tokenTracer
 
 The tokenTracer will then begin running. You will notice this 
 as the terminal will not return to displaying the login 
@@ -254,7 +296,7 @@ and unresponsive.
 The token tracer will be running using its default configuration. 
 
 This configuration will cause the token tracer to sniff for packets 
-on the default ethernet network interface eth0. 
+on the default ethernet network interface ``eth0``. 
 This can be changed through the command-line arguments to listen 
 on a different network interface with ``-i``  or to read 
 from a packet capture file with ``-f``.
@@ -279,7 +321,9 @@ To exit the program, enter CTRL+C together. The program will abort from sniffing
 1. Run the token tracer with the --input-file command line option 
 with the argument "test/test.pcap":
 
-``tokenTracer -f test/testInput.pcap``
+::
+
+    tokenTracer -f test/testInput.pcap
 
 2. The token tracer will output the packets that match its filters 
 for token endpoint requests and response:
@@ -324,13 +368,17 @@ for token endpoint requests and response:
 
 1. Run the tokenTracer to intercept all HTTP packets on the loopback interface:
 
-``tokenTracer -a -i lo0``
+::
+
+    tokenTracer -a -i lo0
 
 2. Start a new terminal.
 
 3. cURL the following HTTP GET request to localhost:
 
-``curl 127.0.0.1:80``
+::
+
+    curl 127.0.0.1:80
 
 4. Repeat this request two more times if you have an HTTP server listening on localhost.
 Otherwise, you will have to repeat this five times.
@@ -387,13 +435,17 @@ the token tracer filters for.
 
 1. Run the tokenTracer to intercept packets on the loopback interface:
 
-``tokenTracer -i lo0``
+::
+
+    tokenTracer -i lo0
 
 2. Start a new terminal.
 
 3. cURL the following HTTP GET request to localhost:
 
-``curl -X POST --data "grant_type=access_code&client_id=johnSmith&code=3142&redirect_uri=http://locahost:80&scope=global&client_secret=42" http://127.0.0.1:80``
+::
+
+    curl -X POST --data "grant_type=access_code&client_id=johnSmith&code=3142&redirect_uri=http://locahost:80&scope=global&client_secret=42" http://127.0.0.1:80
 
 4. Repeat this three or five times.
 
@@ -444,7 +496,9 @@ the token tracer filters for.
 
 1. Run the token tracer program:
 
-``tokenTracer``
+::
+
+    tokenTracer
 
 2. Log into the CanDIG server using the default username and password (both ``user``).
 
@@ -490,7 +544,9 @@ default administrator username and password (both ``admin``).
 
 3. Run the token tracer:
 
-``tokenTracer``
+::
+
+    tokenTracer
 
 4. Log into GA4GH Server using the default username and password:
 
@@ -506,6 +562,7 @@ token endpoint and its response,.
 The documentation for this program can be found under /docs.
 
 This documentation includes:
+
 - Detailed end-user walkthroughs
 - More examples
 - Command-line options

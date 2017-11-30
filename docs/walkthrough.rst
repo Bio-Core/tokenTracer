@@ -25,7 +25,7 @@ For a deployment that uses git, on the same operating system that runs Keycloak,
 
 Here is an example that holds both Keycloak and the Token Tracer within the same directory /srv:
 
-.. code-block:: text
+::
 
     /srv/ 
     ├── keycloak/
@@ -53,7 +53,9 @@ Installation is covered in the README.rst.
 
 Start the token tracer with:
 
-``$ tokenTracer``
+::
+
+    $ tokenTracer
 
 The token tracer will begin to sniff packets on the default interface eth0.
 In this case, the token tracer uses its default settings. The settings can
@@ -64,7 +66,9 @@ be changed through the command-line arguments.
 
 Command-line arguments are appended to the invocation:
 
-``$ tokenTracer -a -i eth0 -j``
+::
+
+    $ tokenTracer -a -i eth0 -j
 
 The command line arguments are listed below:
 
@@ -110,17 +114,23 @@ From these interfaces, you may select which to use for the token tracer. Here we
 
 The token tracer may be assigned to a network interface using the --interface option (short form -i) when starting the token tracer:
 
-``$ tokenTracer -i en0``
+::
+
+    $ tokenTracer -i en0
 
 For example, we may assign the token tracer to listen on the local loopback interface on localhost if keycloak is communicating locally:
 
-``$ tokenTracer -i lo0``
+::
+
+    $ tokenTracer -i lo0
 
 Making HTTP requests to 127.0.0.1 will be intercepted by the tokenTracer.
 
 We may also assign the vboxnet0 interface if the Keycloak server is being hosted on a guest operating system using VirtualBox:
 
-``$ tokenTracer -i vboxnet0``
+::
+
+    $ tokenTracer -i vboxnet0
 
 
 1.2.4 Buffering 
@@ -142,7 +152,9 @@ Packet capture (pcap) files can be obtained from packet sniffer programs such as
 
 Use the --file command to read from a packet capture file in place of sniffing on a live interface:
 
-``$ tokenTracer -f test/testInput.pcap``
+::
+
+    $ tokenTracer -f test/testInput.pcap
 
 The tokenTracer displays the following output:
 
@@ -153,11 +165,15 @@ The token tracer may be instructed to output all HTTP packets that it intercepts
 
 Use the --all option to permit all HTTP packets:
 
-``tokenTracer -a``
+::
+
+    $ tokenTracer -a
 
 This may be used with different input options, including input files:
 
-``tokenTracer -a -f test/testInput.pcap``
+::
+
+    $ tokenTracer -a -f test/testInput.pcap
 
 Now, all HTTP packets recorded in the packet capture file are displayed.
 
@@ -166,14 +182,18 @@ Now, all HTTP packets recorded in the packet capture file are displayed.
 
 The token tracer may output to a file by redirecting its output:
 
-``tokenTracer > output.txt``
+::
+
+    $ tokenTracer > output.txt
 
 The tokenTracer will instead write in pretty-print format to the output file named output.txt.
 You can change the file name and path as desired. 
 
 You can use the --json argument to output in JSON format. This will allow you to write JSON files:
 
-``tokenTracer -j > output.json``
+::
+
+    $ tokenTracer -j > output.json
 
 1.2.8 Use with other Programs
 -------------------------------
@@ -191,11 +211,15 @@ We can invoke the program separately in a shell script using the & command at en
 
 We can then pipe the output to another program:
 
-``tokenTracer | program.py``
+::
+
+    $ tokenTracer | program.py
 
 The output can also be simply redirected as an alterative:
 
-``tokenTracer > program.py``
+::
+
+    $ tokenTracer > program.py
 
 
 1.3 Using the Token Tracer in a generic setup
@@ -239,7 +263,7 @@ Install the application server that you wish to use. Ensure that it does not lis
 
 Ensure that the application server contains a Keycloak adapter or an oidc library that is properly integrated into the server's source code.
 
-Edit the client_secrets.json file with the information from the Keycloak server. 
+Edit the ``client_secrets.json`` file with the information from the Keycloak server. 
   
 Start the application server.
 
@@ -259,34 +283,36 @@ The CanDIG project includes the GA4GH server as part of its application infrastr
 
 Clone the git repository containing the deployer program:
 
-``git clone https://github.com/Bio-Core/candigDeploy``
+::
+
+    $ git clone https://github.com/Bio-Core/candigDeploy
 
 Change into the directory:
 
-``cd candigDeploy``
+::
+
+    $ cd candigDeploy
 
 Decide which interface to listen to. 
 
 Start the deployer with the token tracer option enabled:
 
-``./deployer.py -t -i 127.0.0.1``
+::
 
-The deployer script by default listens on localhost (127.0.0.1), so the -i option is not necessary, but we have put it here so that you change change the ip address to the desired one. The interface must be one of the valid network interfaces listed on your computer. You can determine the viable network interfaces using a program such as ip or ifconfig.
+    $ ./deployer.py -t -i 127.0.0.1
+
+The deployer script by default listens on localhost (``127.0.0.1``), so the ``-i`` option is not necessary, but we have put it here so that you change change the ip address to the desired one. The interface must be one of the valid network interfaces listed on your computer. You can determine the viable network interfaces using a program such as ``ip`` or ``ifconfig``.
 
 
-Once the deployment finishes, you should be able to access the keycloak server at:
-
-``http://127.0.0.1:8080/auth``
+Once the deployment finishes, you should be able to access the keycloak server at ``http://127.0.0.1:8080/auth``
 
 Or at whatever IP address you set for the deployer.
 
-The GA4GH server is accessible at:
-
-``http://127.0.0.1:8000``
+The GA4GH server is accessible at ``http://127.0.0.1:8000``
 
 First, log into the GA4GH as follows:
 
-1. Through a web browser, go to http://127.0.0.1:8000
+1. Through a web browser, go to ``http://127.0.0.1:8000``
 
 Log in as the default user.
 
