@@ -66,22 +66,23 @@ There are two types of packets that it will print:
 1.3 Command Line Arguments
 ----------------------------
 
-+--------------+------------+-----------------+---------------------------------------------------------------------+
-| Variable     | Short Form | Default         | Description                                                         | 
-+==============+============+=================+=====================================================================+
-| interface    | i          | eth0            | Set the network interface on which the packet sniffer should sniff  |
-+--------------+------------+-----------------+---------------------------------------------------------------------+
-| input-file   | f          | None            | Set an input packet capture (.pcap) file to read packets from       |
-+--------------+------------+-----------------+---------------------------------------------------------------------+
-| json         | j          | False           | Output to stdout in JSON format                                     |
-+--------------+------------+-----------------+---------------------------------------------------------------------+
-| all          | a          | False           | Print all HTTP packets intercepted                                  |
-+--------------+------------+-----------------+---------------------------------------------------------------------+
++----------------+-------------+-----------------+---------------------------------------------------------------------+
+| Variable       | Short Form  | Default         | Description                                                         | 
++================+=============+=================+=====================================================================+
+| --interface    | -i          | eth0            | Set the network interface on which the packet sniffer should sniff  |
++----------------+-------------+-----------------+---------------------------------------------------------------------+
+| --input-file   | -f          | None            | Set an input packet capture (.pcap) file to read packets from       |
++----------------+-------------+-----------------+---------------------------------------------------------------------+
+| --json         | -j          | False           | Output to stdout in JSON format                                     |
++----------------+-------------+-----------------+---------------------------------------------------------------------+
+| --all          | -a          | False           | Print all HTTP packets intercepted                                  |
++----------------+-------------+-----------------+---------------------------------------------------------------------+
 
 1.4 Installation
 -----------------------------
 
 There are three options:
+
 1. Installation through pip remotely (Recommended)
 2. Installation through pip locally
 3. Run the token tracer module directly
@@ -171,7 +172,7 @@ these installed. On Debian/Ubuntu enter:
 the folder for the git repository.
 You may wish to create new folders with ``mkdir``.
 
-5. Clone the git repository. A folder called tokenTracer will be 
+5. Clone the git repository. A folder called ``tokenTracer`` will be 
 created in the current directory that will contain the tokenTracer 
 program files.
 
@@ -310,7 +311,7 @@ Keycloak server.
 1.5.2 Exiting the Program
 =============================
 
-To exit the program, enter CTRL+C together. The program will abort from sniffing from a live interface. 
+To exit the program, enter ``CTRL+C`` together. The program will abort from sniffing from a live interface. When reading from a packet file, the program wil terminate automatically when it reaches the end of the file.
 
 1.6 Examples
 ----------------
@@ -374,13 +375,13 @@ for token endpoint requests and response:
 
 2. Start a new terminal.
 
-3. cURL the following HTTP GET request to localhost:
+3. cURL the following HTTP GET request to ``localhost``:
 
 ::
 
     curl 127.0.0.1:80
 
-4. Repeat this request two more times if you have an HTTP server listening on localhost.
+4. Repeat this request two more times if you have an HTTP server listening on ``localhost``.
 Otherwise, you will have to repeat this five times.
 
 The request must be repeated to fill the output buffer.
@@ -425,7 +426,7 @@ The request must be repeated to fill the output buffer.
     Source:               127.0.0.1:80
     Destination:          127.0.0.1:50122
 
-As seen with this example, the output is buffered. Thus, we shouldn't expect any output until a sufficient number of packets have been intercepted. 
+As seen with this example, the output is buffered. Thus, we should not expect any output until a sufficient number of packets have been intercepted. 
 
 1.6.3 Example 3: cURL HTTP Token Request Interception
 ===============================================================

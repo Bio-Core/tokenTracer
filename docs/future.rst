@@ -11,9 +11,9 @@ Generalization of output:
 
 Buffering:
 
--Make the output unbuffered
+- Make the output unbuffered
 
 Decryption:
 
--Decrypt HTTPS data? 
--Decrypt tokens?
+- Decrypt HTTPS data? 
+- Decrypt tokens?

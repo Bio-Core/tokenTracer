@@ -30,5 +30,5 @@ setup(name="tokenTracer",
       python_requires=">=2.7",
       include_package_data=True,
       entry_points={
-          "console_scripts": ["tokenTracer = tokenTracer.tokenTracer:main"]
+          "console_scripts": ["tokenTracer = tokenTracer.tracer:main"]
       }) 
