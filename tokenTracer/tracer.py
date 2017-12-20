@@ -9,8 +9,10 @@ import sys
 # set logging level to CRITICAL to surpress logger
 # set logging level to DEBUG to view debug statements
 # in production, the logger MUST be set to CRITICAL
-logLevel = logging.CRITICAL
-#logLevel = logging.DEBUG
+#logLevel = logging.CRITICAL
+logLevel = logging.DEBUG
+#logLevel = logging.INFO
+
 logging.basicConfig(level=logLevel)
 logger = logging.getLogger()
 

@@ -44,12 +44,19 @@ class assembler:
     a data dictionary called data
     '''
 
-    def accessor(self, rawData, iDict, iKey, key1, key2=None):
+
+    def accessor(self, rawData, iDict, iKey, key1, key2=None, singleKey=False):
         """
         Method for extracting data from raw packets
         and assignning them into a dict
         """
-        if isinstance(key2, int):
+        if singleKey and type(rawData) is dict:
+            try:
+                result = str(rawData[key1])
+            except KeyError:
+                logger.debug("Key Not Found: {0}".format(key1))
+                return None
+        elif isinstance(key2, int):
             # index into a list if an integer
             try:
                 result = str(rawData[key1][key2])
@@ -165,6 +172,14 @@ class assembler:
         #self.accessor(packet, pDict, httpHeader, "http" , "")
         self.accessor(packet, pDict, "http_time", "http", "time")
         self.accessor(packet, pDict, "http_date", "http", "date")
+        self.accessor(packet, pDict, "http_cookie", "http", "cookie")
+        self.accessor(packet, pDict, "http_chat", "http", "chat")
+        self.accessor(packet, pDict, "http_response_line", "http", "response_line")
+        self.accessor(packet, pDict, "http_accept_language", "http", "accept_language")
+        self.accessor(packet, pDict, "http_connection", "http", "connection")
+        self.accessor(packet, pDict, "http_user_agent", "http", "user_agent")
+        self.accessor(packet, pDict, "http_request_full_uri", "http", "request_full_uri")
+        self.accessor(packet, pDict, "http_request_method", "http", "request_method")
         self.accessor(packet, pDict, "content_type", "http", "content_type")
         self.accessor(packet, pDict, "response_code", "http", "response_code")
         self.accessor(packet, pDict, "response_phrase", "http", "response_phrase")            
@@ -190,19 +205,19 @@ class assembler:
 
         if packetData:
             try:
-                httpBody = json.loads(packetData)
+                jsonBody = json.loads(packetData)
             except ValueError:
                 logger.debug('ValueError: Not JSON format')
                 logger.debug('Parsing complete: Dictionary assembled:')
-                logger.debug(pDict)
+                logger.info(pDict)
                 return pDict
-            self.accessor(httpBody, pDict, accessToken, access_token)
-            self.accessor(httpBody, pDict, accessTokenExpiry, access_token_expiry)
-            self.accessor(httpBody, pDict, refreshToken, refresh_token)
-            self.accessor(httpBody, pDict, refreshTokenExpiry, refresh_token_expiry)
-            self.accessor(httpBody, pDict, tokenType, token_type)
-            self.accessor(httpBody, pDict, idToken, id_token)
+            self.accessor(jsonBody, pDict, accessToken, access_token, singleKey=True)
+            self.accessor(jsonBody, pDict, accessTokenExpiry, access_token_expiry, singleKey=True)
+            self.accessor(jsonBody, pDict, refreshToken, refresh_token, singleKey=True)
+            self.accessor(jsonBody, pDict, refreshTokenExpiry, refresh_token_expiry, singleKey=True)
+            self.accessor(jsonBody, pDict, tokenType, token_type, singleKey=True)
+            self.accessor(jsonBody, pDict, idToken, id_token, singleKey=True)
 
         logger.debug('Parsing complete: Dictionary assembled:')
-        logger.debug(pDict)
+        logger.info(pDict)
         return pDict
